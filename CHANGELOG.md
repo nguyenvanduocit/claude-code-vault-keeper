@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/nguyenvanduocit/claude-code-vault-keeper/compare/v1.2.0...v1.3.0) (2026-06-04)
+
+
+### Features
+
+* **list:** enforce GFM task-list items via list.items.task ([7268067](https://github.com/nguyenvanduocit/claude-code-vault-keeper/commit/72680675e62c3dbabdc6888123ec39e957bf4f79))
+
 # [1.2.0](https://github.com/nguyenvanduocit/claude-code-vault-keeper/compare/v1.1.0...v1.2.0) (2026-05-25)
 
 

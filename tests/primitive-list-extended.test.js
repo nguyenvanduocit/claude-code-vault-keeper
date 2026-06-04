@@ -137,3 +137,38 @@ describe("list missing → list-item error (unchanged)", () => {
       .some((i) => i.error_type === "list-item")).toBe(true);
   });
 });
+
+describe("list primitive — items.task (GFM task-list enforcement)", () => {
+  const CHECKLIST = "## Steps\n\n- [x] done one\n- [ ] todo two\n";
+  const PLAIN = LIST_THREE; // plain bullets, no checkboxes
+
+  test("task: true passes a task-list with mixed [x]/[ ] items", async () => {
+    expect(errs(await applyBodySchema(schemaWithList({ items: { task: true } }), CHECKLIST))).toHaveLength(0);
+  });
+
+  test("task: true flags plain bullets as not-a-task-list", async () => {
+    const issues = errs(await applyBodySchema(schemaWithList({ items: { task: true } }), PLAIN));
+    expect(issues.length).toBe(3);
+    expect(issues.every((i) => i.message.includes("must be a task-list item"))).toBe(true);
+  });
+
+  test("task: 'done' flags the unchecked item", async () => {
+    const issues = errs(await applyBodySchema(schemaWithList({ items: { task: "done" } }), CHECKLIST));
+    expect(issues.some((i) => i.message.includes("todo two") && i.message.includes("must be checked"))).toBe(true);
+  });
+
+  test("task: 'todo' flags the checked item", async () => {
+    const issues = errs(await applyBodySchema(schemaWithList({ items: { task: "todo" } }), CHECKLIST));
+    expect(issues.some((i) => i.message.includes("done one") && i.message.includes("must be unchecked"))).toBe(true);
+  });
+
+  test("config: task: true is accepted", () => {
+    const schema = [{ depth: 2, text: "Steps", sectionRules: { list: { items: { task: true } } }, children: [] }];
+    expect(validateBodyTemplateSchema(schema).some((i) => i.error_type === "template-schema-invalid")).toBe(false);
+  });
+
+  test("config: task: 'bogus' → template-schema-invalid", () => {
+    const schema = [{ depth: 2, text: "Steps", sectionRules: { list: { items: { task: "bogus" } } }, children: [] }];
+    expect(validateBodyTemplateSchema(schema).some((i) => i.message.includes("list.items.task"))).toBe(true);
+  });
+});

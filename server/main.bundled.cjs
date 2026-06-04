@@ -218660,6 +218660,7 @@ function parseList(node3) {
   for (const item of listItems) {
     items.push({
       text: toString(item).trim(),
+      checked: typeof item.checked === "boolean" ? item.checked : null,
       line: item.position?.start?.line ?? 1
     });
   }
@@ -219378,7 +219379,7 @@ var tablePrimitive = {
 
 // lib/primitives/list.js
 var LIST_INNER_KEYS = /* @__PURE__ */ new Set(["items", "min", "max", "unique"]);
-var LIST_ITEMS_INNER_KEYS = /* @__PURE__ */ new Set(["required", "pattern", "enum"]);
+var LIST_ITEMS_INNER_KEYS = /* @__PURE__ */ new Set(["required", "pattern", "enum", "task"]);
 function validate3(_value, param, ctx) {
   const level = ctx.severity || "error";
   const field = ctx.field;
@@ -219419,6 +219420,7 @@ function validate3(_value, param, ctx) {
       }
     }
     const allowedEnum = Array.isArray(itemRules.enum) ? itemRules.enum.map((v3) => String(v3)) : null;
+    const taskRule = itemRules.task;
     for (const item of items) {
       if (itemRules.required && (!item.text || !item.text.trim())) {
         const i2 = issue(level, field, ctx.message || `List item is empty`, "list-item");
@@ -219435,6 +219437,21 @@ function validate3(_value, param, ctx) {
         const i2 = issue(level, field, ctx.message || `List item '${item.text}' is not in allowed values: [${allowedEnum.join(", ")}]`, "list-item");
         i2.bodyLine = item.line;
         issues.push(i2);
+      }
+      if (taskRule) {
+        if (item.checked === null || item.checked === void 0) {
+          const i2 = issue(level, field, ctx.message || `List item '${item.text}' must be a task-list item (\`- [ ]\` or \`- [x]\`)`, "list-item");
+          i2.bodyLine = item.line;
+          issues.push(i2);
+        } else if (taskRule === "done" && item.checked !== true) {
+          const i2 = issue(level, field, ctx.message || `List item '${item.text}' must be checked (\`- [x]\`)`, "list-item");
+          i2.bodyLine = item.line;
+          issues.push(i2);
+        } else if (taskRule === "todo" && item.checked !== false) {
+          const i2 = issue(level, field, ctx.message || `List item '${item.text}' must be unchecked (\`- [ ]\`)`, "list-item");
+          i2.bodyLine = item.line;
+          issues.push(i2);
+        }
       }
     }
   }
@@ -219462,6 +219479,18 @@ function validateConfig2(param, path5, issues) {
         `'list.items.enum' in '${path5}' must be an array`,
         "template-schema-invalid"
       ));
+    }
+    if (param.items.task !== void 0) {
+      const t = param.items.task;
+      const ok3 = t === true || t === "any" || t === "todo" || t === "done";
+      if (!ok3) {
+        issues.push(issue(
+          "error",
+          path5,
+          `'list.items.task' in '${path5}' must be true or one of "any" | "todo" | "done"`,
+          "template-schema-invalid"
+        ));
+      }
     }
   }
 }
